@@ -3,11 +3,13 @@ import type { JobArgs, JobResult, JobRunner } from "./types.js";
 import { runGenerate } from "../generation/orchestrator.js";
 import { runReindex } from "./reindex.js";
 import { runMaintainLinks } from "./maintain-links.js";
+import { runRefresh } from "./refresh.js";
 
 const runners: Record<string, JobRunner> = {
   generate: (db, args) => runGenerate(db, args as { siteId: string }) as Promise<JobResult>,
   reindex: runReindex,
   "maintain-links": runMaintainLinks,
+  refresh: runRefresh,
 };
 
 export function registerJob(jobType: string, runner: JobRunner): void {
