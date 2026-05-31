@@ -3,7 +3,7 @@ import { and, eq, lte, or, isNull } from "drizzle-orm";
 import type { DB } from "../db/client.js";
 import { db as defaultDb } from "../db/client.js";
 import { schedules } from "../db/schema.js";
-import { runGenerate } from "../generation/orchestrator.js";
+import { runJob } from "../jobs/index.js";
 
 export type Schedule = typeof schedules.$inferSelect;
 
@@ -23,8 +23,10 @@ function computeNextRun(cron: string, from: Date): Date | null {
 export async function tick(db: DB, now = new Date()): Promise<void> {
   const due = await dueSchedules(db, now);
   for (const s of due) {
-    if (s.jobType === "generate") {
-      await runGenerate(db, { siteId: s.siteId });
+    try {
+      await runJob(db, s.jobType, { siteId: s.siteId });
+    } catch {
+      // a dispatch error must not stop the loop; the job recorder logs its own failures
     }
     await db
       .update(schedules)

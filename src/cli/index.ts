@@ -5,7 +5,7 @@ import { createBrand } from "../service/brands.js";
 import { createSite, listSites, getSiteBySlug } from "../service/sites.js";
 import { saveCredential } from "../service/credentials.js";
 import { addTopic } from "../service/topics.js";
-import { runGenerate } from "../generation/orchestrator.js";
+import { runJob, knownJobTypes } from "../jobs/index.js";
 import { startWorker } from "../scheduler/worker.js";
 
 // Side-effect imports register providers/adapters.
@@ -87,11 +87,19 @@ program
   .option("--job <type>", "job type", "generate")
   .option("--llm <provider>", "llm provider", "claude")
   .option("--type <contentType>", "content type", "guides")
+  .option("--max-age-days <n>", "refresh: only posts older than N days")
+  .option("--limit <n>", "max items to process")
   .action(async (o) => {
     const site = await getSiteBySlug(db, o.site);
     if (!site) throw new Error(`site not found: ${o.site}`);
-    if (o.job !== "generate") throw new Error(`Phase 1 supports only 'generate'; got ${o.job}`);
-    const result = await runGenerate(db, { siteId: site.id, llmProvider: o.llm, contentType: o.type });
+    if (!knownJobTypes().includes(o.job)) throw new Error(`unknown job type '${o.job}'. Known: ${knownJobTypes().join(", ")}`);
+    const result = await runJob(db, o.job, {
+      siteId: site.id,
+      llmProvider: o.llm,
+      contentType: o.type,
+      ...(o.maxAgeDays ? { maxAgeDays: Number(o.maxAgeDays) } : {}),
+      ...(o.limit ? { limit: Number(o.limit) } : {}),
+    });
     console.log(JSON.stringify(result, null, 2));
     if (result.status === "failed") process.exit(1);
   });
