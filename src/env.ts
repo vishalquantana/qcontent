@@ -15,8 +15,9 @@ export const env = {
 };
 
 export function requireMasterKey(): Buffer {
-  if (!env.masterKey) throw new Error("QCONTENT_MASTER_KEY is required");
-  const buf = Buffer.from(env.masterKey, "base64");
+  const key = process.env.QCONTENT_MASTER_KEY ?? env.masterKey;
+  if (!key) throw new Error("QCONTENT_MASTER_KEY is required");
+  const buf = Buffer.from(key, "base64");
   if (buf.length !== 32) throw new Error("QCONTENT_MASTER_KEY must be base64 of 32 bytes (AES-256)");
   return buf;
 }
