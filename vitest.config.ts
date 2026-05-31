@@ -4,7 +4,6 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts"],
-    exclude: ["tests/crypto.test.ts", "tests/article.test.ts"],
     testTimeout: 20000,
   },
 });

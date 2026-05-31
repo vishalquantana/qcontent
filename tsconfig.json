@@ -14,6 +14,5 @@
     "declaration": false,
     "noUncheckedIndexedAccess": true
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts"],
-  "exclude": ["tests/article.test.ts"]
+  "include": ["src/**/*.ts", "tests/**/*.ts"]
 }
