@@ -29,3 +29,19 @@ export async function popQueuedTopic(db: DB, siteId: string): Promise<Topic | nu
   await db.update(topics).set({ status: "used", usedAt: new Date() }).where(eq(topics.id, topic.id));
   return topic;
 }
+
+/** Highest-priority approved topic for a site, WITHOUT consuming it. */
+export async function peekQueuedTopic(db: DB, siteId: string): Promise<Topic | null> {
+  const rows = await db
+    .select()
+    .from(topics)
+    .where(and(eq(topics.siteId, siteId), eq(topics.status, "approved")))
+    .orderBy(desc(topics.priority))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+/** Marks a topic consumed (call only after successful publish). */
+export async function markTopicUsed(db: DB, topicId: string): Promise<void> {
+  await db.update(topics).set({ status: "used", usedAt: new Date() }).where(eq(topics.id, topicId));
+}

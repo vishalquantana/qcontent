@@ -7,7 +7,7 @@ import { makeDb } from "../src/db/client.js";
 import { createBrand } from "../src/service/brands.js";
 import { createSite } from "../src/service/sites.js";
 import { saveCredential } from "../src/service/credentials.js";
-import { addTopic } from "../src/service/topics.js";
+import { addTopic, peekQueuedTopic } from "../src/service/topics.js";
 import { getAllSlugs } from "../src/service/published.js";
 import { runGenerate } from "../src/generation/orchestrator.js";
 import { registerLLMProvider } from "../src/providers/llm/index.js";
@@ -62,5 +62,33 @@ describe("runGenerate", () => {
     const db = makeDb(URL);
     const result = await runGenerate(db, { siteId, llmProvider: "fake", contentType: "guides" });
     expect(result.status).toBe("failed");
+  });
+});
+
+describe("runGenerate failure does not consume queued topic", () => {
+  it("leaves the queued topic approved when generation fails validation", async () => {
+    const URL2 = `file:${join(tmpdir(), `qcontent-orch-fail-test-${randomUUID()}.db`)}`;
+    await runMigrations(URL2);
+    const db2 = makeDb(URL2);
+
+    const brand = await createBrand(db2, { name: "L2", slug: "ladya-fail", seedKeywords: ["x"] });
+    const site = await createSite(db2, {
+      brandId: brand.id, name: "L2", slug: "ladya-fail-site", adapterType: "webhook",
+      baseUrl: "https://ladya.in", contentTypes: { guides: {} },
+    });
+    await saveCredential(db2, { siteId: site.id, integration: "webhook", secret: { url: "https://hook.test/in" } });
+    await addTopic(db2, { siteId: site.id, title: "Queued and should survive failure", source: "manual", status: "approved", priority: 5 });
+
+    registerLLMProvider("failval", () => ({
+      name: "failval",
+      async generateJson() {
+        return { ...fakeArticle, slug: "fail-val-slug", bodyMarkdown: "x {{visual:missing}}" } as never;
+      },
+    }));
+
+    const result = await runGenerate(db2, { siteId: site.id, llmProvider: "failval", contentType: "guides" });
+    expect(result.status).toBe("failed");
+    const stillThere = await peekQueuedTopic(db2, site.id);
+    expect(stillThere?.title).toBe("Queued and should survive failure");
   });
 });

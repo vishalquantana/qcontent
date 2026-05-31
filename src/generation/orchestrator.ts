@@ -7,7 +7,7 @@ import type { DB } from "../db/client.js";
 import { getSite } from "../service/sites.js";
 import { getBrand } from "../service/brands.js";
 import { getCredential } from "../service/credentials.js";
-import { popQueuedTopic } from "../service/topics.js";
+import { peekQueuedTopic, markTopicUsed } from "../service/topics.js";
 import { getAllSlugs, recordPublished, slugExists } from "../service/published.js";
 import { startRun } from "../service/runs.js";
 import { getLLMProvider } from "../providers/llm/index.js";
@@ -43,8 +43,10 @@ export async function runGenerate(db: DB, args: GenerateArgs): Promise<GenerateR
     const contentType = args.contentType ?? "guides";
 
     let topic: string;
-    const queued = await popQueuedTopic(db, args.siteId);
+    let queuedTopicId: string | null = null;
+    const queued = await peekQueuedTopic(db, args.siteId);
     if (queued) {
+      queuedTopicId = queued.id;
       topic = queued.title;
       await run.log("info", "topic from queue", { topic });
     } else {
@@ -79,6 +81,10 @@ export async function runGenerate(db: DB, args: GenerateArgs): Promise<GenerateR
       siteId: args.siteId, slug: article.slug, url: published.url, contentType,
       title: article.title, adapterRef: published.ref as Record<string, unknown>, contentHash,
     });
+
+    if (queuedTopicId) {
+      await markTopicUsed(db, queuedTopicId);
+    }
 
     await run.finishOk({ slug: article.slug, url: published.url });
     return { status: "ok", url: published.url, slug: article.slug };
