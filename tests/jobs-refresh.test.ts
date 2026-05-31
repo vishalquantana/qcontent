@@ -18,7 +18,7 @@ const URL = `file:${join(tmpdir(), `qcontent-refresh-test-${randomUUID()}.db`)}`
 function art(slug: string, body: string): Article {
   return {
     title: "How to Cut Blinkit Ad Waste in 2026: A Practical Guide", slug,
-    excerpt: "A specific, concrete meta description padded out to clear the forty character minimum bound easily here.",
+    excerpt: "A specific, concrete meta description about reducing Blinkit ad waste with concrete steps, India benchmarks, and citable data points here.",
     category: "Guides", tags: ["blinkit"], date: "2026-01-01", bodyMarkdown: body, tldr: "t.",
     faqs: [{ question: "a?", answer: "b" }, { question: "c?", answer: "d" }, { question: "e?", answer: "f" }],
     takeaways: ["one", "two", "three", "four"], relatedSlugs: [], visuals: [],
