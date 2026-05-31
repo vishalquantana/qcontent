@@ -58,7 +58,8 @@ export async function runDistributeSocial(db: DB, args: JobArgs): Promise<JobRes
     for (const row of batch) {
       const prompt = `Write an Instagram carousel for this article. Return JSON {caption, hashtags[], slides[]} where slides is 4-6 items each {type: "hook"|"insight"|"stat"|"cta", text} (<=25 words each), opening with a hook and ending with a CTA to follow @${style.handle}. Article: ${JSON.stringify({ title: row.article.title, tldr: row.article.tldr, takeaways: row.article.takeaways })}`;
       const slides = await llm.generateJson({ prompt, schema: SlidesSchema });
-      const hashtags = slides.hashtags.length ? slides.hashtags : ((brand.hashtags as string[] | null) ?? []);
+      const slideHashtags = slides.hashtags ?? [];
+      const hashtags = slideHashtags.length ? slideHashtags : ((brand.hashtags as string[] | null) ?? []);
       const images = await renderCarousel(slides.slides, style, render);
       const result = await deliverCarousel(creds, images, slides.caption, hashtags);
       if (result.delivered) {

@@ -37,7 +37,7 @@ describe("GitHubMdxAdapter.update", () => {
     const calls: Array<{ url: string; init?: RequestInit }> = [];
     vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
       calls.push({ url, init });
-      if ((init?.method ?? "GET") === "GET" && url.endsWith(".mdx")) {
+      if ((init?.method ?? "GET") === "GET" && url.includes(".mdx")) {
         return { ok: true, status: 200, json: async () => ({ sha: "oldsha", content: Buffer.from("old").toString("base64"), encoding: "base64" }) } as Response;
       }
       return { ok: true, status: 200, json: async () => ({ commit: { sha: "c9" }, content: { sha: "b9" } }) } as Response;

@@ -35,7 +35,11 @@ export async function runMaintainLinks(db: DB, args: JobArgs): Promise<JobResult
 
     let updated = 0;
     for (const row of rows) {
-      const others = candidates.filter((c) => c.slug !== row.slug);
+      // Exclude the post itself and any candidate already linked in this body, so repeated
+      // runs are idempotent and never accumulate links beyond what each run adds.
+      const others = candidates.filter(
+        (c) => c.slug !== row.slug && !row.article.bodyMarkdown.includes(`](${c.url})`),
+      );
       const { body, changed } = injectInternalLinks(row.article.bodyMarkdown, others, maxLinks);
       if (!changed) continue;
       const nextArticle = ArticleSchema.parse({ ...row.article, bodyMarkdown: body });

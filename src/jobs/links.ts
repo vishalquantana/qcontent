@@ -40,6 +40,9 @@ export function injectInternalLinks(body: string, candidates: LinkCandidate[], m
 
   for (const cand of candidates) {
     if (added >= maxLinks) break;
+    // Skip candidates already linked anywhere in the body, so repeated runs stay idempotent
+    // and a body that already references a URL never gets a second link to it.
+    if (out.includes(`](${cand.url})`)) continue;
     for (const kw of cand.keywords) {
       if (added >= maxLinks) break;
       // Match the keyword as a whole word, not preceded by "[" / word char / "/",
