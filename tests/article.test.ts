@@ -3,9 +3,9 @@ import { ArticleSchema } from "../src/domain/article.js";
 import { validateArticle } from "../src/domain/validators.js";
 
 const good = {
-  title: "How to Cut Blinkit Ad Waste in 2026",
+  title: "How to Cut Blinkit Ad Waste in 2026: A Practical Guide",
   slug: "cut-blinkit-ad-waste-2026",
-  excerpt: "A short, specific meta description about reducing Blinkit ad waste with concrete steps.",
+  excerpt: "Cut Blinkit ad waste in 2026 by pausing dark hours, tightening match types, and capping CPCs—brands typically save between 18 and 30 percent.",
   category: "Guides",
   tags: ["blinkit", "ad-waste"],
   date: "2026-05-31",
@@ -28,6 +28,9 @@ describe("ArticleSchema", () => {
   });
   it("rejects an article with too few faqs", () => {
     expect(() => ArticleSchema.parse({ ...good, faqs: [good.faqs[0]] })).toThrow();
+  });
+  it("rejects an article with a title shorter than 50 characters", () => {
+    expect(() => ArticleSchema.parse({ ...good, title: "Short title" })).toThrow();
   });
 });
 

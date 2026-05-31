@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS published_content (
   url TEXT, content_type TEXT, title TEXT, adapter_ref TEXT, content_hash TEXT,
   social_posted INTEGER NOT NULL DEFAULT 0, published_at INTEGER
 );
+CREATE UNIQUE INDEX IF NOT EXISTS published_site_slug_unq ON published_content(site_id, slug)
 `;
 
 export async function runMigrations(url = env.tursoUrl, authToken = env.tursoToken): Promise<void> {

@@ -65,6 +65,27 @@ describe("runGenerate", () => {
   });
 });
 
+describe("runGenerate rejects disabled site", () => {
+  it("returns failed status with 'disabled' in error when site.enabled is 0", async () => {
+    const URL3 = `file:${join(tmpdir(), `qcontent-disabled-site-test-${randomUUID()}.db`)}`;
+    await runMigrations(URL3);
+    const db3 = makeDb(URL3);
+
+    const brand = await createBrand(db3, { name: "L3", slug: "ladya-disabled", seedKeywords: ["x"] });
+    const site = await createSite(db3, {
+      brandId: brand.id, name: "L3", slug: "ladya-disabled-site", adapterType: "webhook",
+      baseUrl: "https://ladya.in", contentTypes: { guides: {} }, enabled: 0,
+    });
+    await saveCredential(db3, { siteId: site.id, integration: "webhook", secret: { url: "https://hook.test/in", token: "t" } });
+    await addTopic(db3, { siteId: site.id, title: "Should never generate", source: "manual", status: "approved", priority: 5 });
+
+    const result = await runGenerate(db3, { siteId: site.id, llmProvider: "fake", contentType: "guides" });
+    expect(result.status).toBe("failed");
+    expect(result.error).toContain("disabled");
+    expect(await getAllSlugs(db3, site.id)).toHaveLength(0);
+  });
+});
+
 describe("runGenerate failure does not consume queued topic", () => {
   it("leaves the queued topic approved when generation fails validation", async () => {
     const URL2 = `file:${join(tmpdir(), `qcontent-orch-fail-test-${randomUUID()}.db`)}`;

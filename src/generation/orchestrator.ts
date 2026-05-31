@@ -37,6 +37,7 @@ export async function runGenerate(db: DB, args: GenerateArgs): Promise<GenerateR
   try {
     const site = await getSite(db, args.siteId);
     if (!site) throw new Error(`site not found: ${args.siteId}`);
+    if (!site.enabled) throw new Error(`site disabled: ${args.siteId}`);
     const brand = await getBrand(db, site.brandId);
     if (!brand) throw new Error(`brand not found: ${site.brandId}`);
 

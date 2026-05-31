@@ -3,15 +3,15 @@ import { WebhookAdapter } from "../src/adapters/publish/webhook.js";
 import { ArticleSchema } from "../src/domain/article.js";
 
 const article = ArticleSchema.parse({
-  title: "How to Cut Blinkit Ad Waste in 2026",
+  title: "How to Cut Blinkit Ad Waste in 2026: A Practical Guide",
   slug: "cut-waste",
-  excerpt: "A short, specific meta description about reducing Blinkit ad waste with steps and data.",
+  excerpt: "Learn how to reduce Blinkit ad spend waste in 2026 with dayparting, match-type tightening, and CPC caps that save 18-30%.",
   category: "Guides", tags: [], date: "2026-05-31",
   bodyMarkdown: "Lead.\n\n## What?\n\nBody.",
   tldr: "Cut waste.", faqs: [
     { question: "a", answer: "b" }, { question: "c", answer: "d" }, { question: "e", answer: "f" },
   ],
-  takeaways: ["x", "y", "z"], relatedSlugs: [], visuals: [],
+  takeaways: ["x", "y", "z", "w"], relatedSlugs: [], visuals: [],
   seoHints: { jsonldType: "Article", mentions: [], speakableSelectors: [] },
 });
 

@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 const id = () => text("id").primaryKey();
 const now = () => integer("created_at", { mode: "timestamp_ms" }).$defaultFn(() => new Date());
@@ -97,4 +97,6 @@ export const publishedContent = sqliteTable("published_content", {
   contentHash: text("content_hash"),
   socialPosted: integer("social_posted").notNull().default(0),
   publishedAt: integer("published_at", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
-});
+}, (t) => ({
+  siteSlugUnq: uniqueIndex("published_site_slug_unq").on(t.siteId, t.slug),
+}));

@@ -14,9 +14,9 @@ export const FaqSchema = z.object({
 });
 
 export const ArticleSchema = z.object({
-  title: z.string().min(10).max(120),
+  title: z.string().min(50).max(65),
   slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
-  excerpt: z.string().min(40).max(200),
+  excerpt: z.string().min(120).max(155),
   category: z.string().min(1),
   tags: z.array(z.string()).default([]),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -24,7 +24,7 @@ export const ArticleSchema = z.object({
   bodyMarkdown: z.string().min(1),
   tldr: z.string().min(1),
   faqs: z.array(FaqSchema).min(3),
-  takeaways: z.array(z.string().min(1)).min(3),
+  takeaways: z.array(z.string().min(1)).min(4).max(6),
   relatedSlugs: z.array(z.string()).default([]),
   visuals: z.array(VisualSchema).default([]),
   seoHints: z.object({
