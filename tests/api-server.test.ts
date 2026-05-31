@@ -49,7 +49,7 @@ describe("startServer", () => {
     });
     expect(res.status).toBe(201);
     expect(res.headers.get("content-type")).toContain("application/json");
-    const body = await res.json();
+    const body = (await res.json()) as { slug: string };
     expect(body.slug).toBe("srv-brand");
   });
 });

@@ -19,3 +19,7 @@ export async function getBrand(db: DB, id: string): Promise<Brand | null> {
   const rows = await db.select().from(brands).where(eq(brands.id, id)).limit(1);
   return rows[0] ?? null;
 }
+
+export async function listBrands(db: DB): Promise<Brand[]> {
+  return db.select().from(brands);
+}
