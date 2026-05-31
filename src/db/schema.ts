@@ -95,6 +95,7 @@ export const publishedContent = sqliteTable("published_content", {
   title: text("title"),
   adapterRef: text("adapter_ref", { mode: "json" }).$type<Record<string, unknown>>(),
   contentHash: text("content_hash"),
+  article: text("article", { mode: "json" }).$type<Record<string, unknown>>(),
   socialPosted: integer("social_posted").notNull().default(0),
   publishedAt: integer("published_at", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
 }, (t) => ({

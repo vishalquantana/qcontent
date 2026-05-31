@@ -61,6 +61,32 @@ export class WordPressAdapter implements PublishAdapter {
     return { url, ref: { id: body.id, link: body.link } };
   }
 
+  async update(article: Article, ref: unknown, site: Site, creds: Record<string, unknown>): Promise<PublishResult> {
+    const c = creds as WordPressCreds;
+    if (!c.username || !c.appPassword) throw new Error("wordpress adapter: missing 'username'/'appPassword' credentials");
+    const id = (ref as { id?: number | string } | null)?.id;
+    if (id === undefined || id === null) throw new Error("wordpress adapter: update requires ref.id");
+    const cfg = (site.adapterConfig ?? {}) as WordPressConfig;
+    const base = (cfg.baseUrl ?? site.baseUrl ?? "").replace(/\/$/, "");
+    if (!base) throw new Error("wordpress adapter: missing base URL");
+    const auth = "Basic " + Buffer.from(`${c.username}:${c.appPassword}`).toString("base64");
+    const headers = { Authorization: auth, "Content-Type": "application/json" };
+
+    const payload: Record<string, unknown> = {
+      title: article.title,
+      content: markdownToHtml(inlineVisuals(article)),
+      excerpt: article.excerpt,
+    };
+    const meta = this.seoMeta(cfg.seoPlugin, article);
+    if (meta) payload.meta = meta;
+
+    const res = await fetch(`${base}/wp-json/wp/v2/posts/${id}`, { method: "POST", headers, body: JSON.stringify(payload) });
+    if (!res.ok) throw new Error(`wordpress update failed: ${res.status} ${await res.text().catch(() => "")}`);
+    const body = (await res.json()) as { id: number; link?: string };
+    const url = body.link ?? `${base}/${article.slug}`;
+    return { url, ref: { id: body.id, link: body.link } };
+  }
+
   private async resolveTerm(
     api: string,
     taxonomy: "categories" | "tags",

@@ -9,6 +9,7 @@ export interface PublishResult {
 export interface PublishAdapter {
   readonly type: string;
   publish(article: Article, site: Site, creds: Record<string, unknown>): Promise<PublishResult>;
+  update?(article: Article, ref: unknown, site: Site, creds: Record<string, unknown>): Promise<PublishResult>;
 }
 
 const registry = new Map<string, () => PublishAdapter>();

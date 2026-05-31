@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS run_logs (
 CREATE TABLE IF NOT EXISTS published_content (
   id TEXT PRIMARY KEY, site_id TEXT NOT NULL REFERENCES sites(id), slug TEXT NOT NULL,
   url TEXT, content_type TEXT, title TEXT, adapter_ref TEXT, content_hash TEXT,
-  social_posted INTEGER NOT NULL DEFAULT 0, published_at INTEGER
+  article TEXT, social_posted INTEGER NOT NULL DEFAULT 0, published_at INTEGER
 );
 CREATE UNIQUE INDEX IF NOT EXISTS published_site_slug_unq ON published_content(site_id, slug)
 `;
@@ -49,6 +49,12 @@ export async function runMigrations(url = env.tursoUrl, authToken = env.tursoTok
   const client = createClient({ url, authToken });
   for (const stmt of DDL.split(";").map((s) => s.trim()).filter(Boolean)) {
     await client.execute(stmt);
+  }
+  // Idempotent column add for DBs created before the snapshot column existed.
+  try {
+    await client.execute("ALTER TABLE published_content ADD COLUMN article TEXT");
+  } catch {
+    // Column already exists (fresh DBs get it from CREATE TABLE) — ignore.
   }
   client.close();
 }

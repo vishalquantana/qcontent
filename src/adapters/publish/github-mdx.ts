@@ -69,6 +69,28 @@ export class GitHubMdxAdapter implements PublishAdapter {
       : article.slug;
     return { url, ref: { commitSha: mdxRes.commitSha, path: filePath, branch: targetBranch, prUrl } };
   }
+
+  async update(article: Article, ref: unknown, site: Site, creds: Record<string, unknown>): Promise<PublishResult> {
+    const token = creds.token as string | undefined;
+    if (!token) throw new Error("github-mdx adapter: missing 'token' credential");
+    const cfg = (site.adapterConfig ?? {}) as GitHubMdxConfig;
+    if (!cfg.owner || !cfg.repo) throw new Error("github-mdx adapter: adapterConfig.owner and .repo are required");
+    const r = (ref ?? {}) as { path?: string; branch?: string };
+    const branch = r.branch ?? cfg.branch ?? "main";
+    const basePath = cfg.basePath ?? "content";
+    const type = cfg.type ?? "guides";
+    const filePath = r.path ?? mdxPath(article.slug, type, basePath);
+    const gh = new GitHubClient(token);
+
+    const existing = await gh.getFile(cfg.owner, cfg.repo, filePath, branch);
+    const res = await gh.putFile({
+      owner: cfg.owner, repo: cfg.repo, path: filePath,
+      message: `content: update "${article.title}"`, content: articleToMdx(article), branch,
+      ...(existing ? { sha: existing.sha } : {}),
+    });
+    const url = site.baseUrl ? `${site.baseUrl.replace(/\/$/, "")}/${type}/${article.slug}` : article.slug;
+    return { url, ref: { commitSha: res.commitSha, path: filePath, branch } };
+  }
 }
 
 function safeParse(s: string): Record<string, unknown> {
