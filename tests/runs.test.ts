@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { runMigrations } from "../src/db/migrate.js";
 import { makeDb } from "../src/db/client.js";
 import { brands, sites, runLogs } from "../src/db/schema.js";
-import { startRun } from "../src/service/runs.js";
+import { startRun, listRuns, getRun, getRunLogs } from "../src/service/runs.js";
 import { recordPublished, slugExists } from "../src/service/published.js";
 import { eq } from "drizzle-orm";
 
@@ -36,5 +36,31 @@ describe("runs + published", () => {
     expect(await slugExists(db, siteId, "my-post")).toBe(false);
     await recordPublished(db, { siteId, slug: "my-post", url: "https://x/my-post", title: "My Post" });
     expect(await slugExists(db, siteId, "my-post")).toBe(true);
+  });
+});
+
+describe("runs read-service", () => {
+  it("lists runs for a site (newest first) and fetches one with its logs", async () => {
+    const db = makeDb(URL);
+    const run = await startRun(db, { siteId, jobType: "reindex" });
+    await run.log("info", "hello", { a: 1 });
+    await run.finishOk({ ok: true });
+
+    const list = await listRuns(db, { siteId });
+    expect(list.length).toBeGreaterThanOrEqual(1);
+    expect(list[0]!.jobType).toBe("reindex");
+    expect(list[0]!.status).toBe("ok");
+
+    const got = await getRun(db, run.id);
+    expect(got?.id).toBe(run.id);
+
+    const logs = await getRunLogs(db, run.id);
+    expect(logs.some((l) => l.message === "hello")).toBe(true);
+  });
+
+  it("listRuns respects limit", async () => {
+    const db = makeDb(URL);
+    const all = await listRuns(db, { limit: 1 });
+    expect(all.length).toBe(1);
   });
 });

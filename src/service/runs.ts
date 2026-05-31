@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import type { DB } from "../db/client.js";
 import { runs, runLogs } from "../db/schema.js";
 
@@ -28,4 +28,28 @@ export async function startRun(
       await db.update(runs).set({ status: "failed", finishedAt: new Date(), error, summary }).where(eq(runs.id, id));
     },
   };
+}
+
+export type RunRow = typeof runs.$inferSelect;
+export type RunLogRow = typeof runLogs.$inferSelect;
+
+/** List runs, newest first, optionally filtered by site, capped by limit (default 50). */
+export async function listRuns(
+  db: DB,
+  opts: { siteId?: string; limit?: number } = {},
+): Promise<RunRow[]> {
+  const limit = opts.limit ?? 50;
+  return opts.siteId
+    ? db.select().from(runs).where(eq(runs.siteId, opts.siteId)).orderBy(desc(runs.startedAt)).limit(limit)
+    : db.select().from(runs).orderBy(desc(runs.startedAt)).limit(limit);
+}
+
+export async function getRun(db: DB, id: string): Promise<RunRow | null> {
+  const rows = await db.select().from(runs).where(eq(runs.id, id)).limit(1);
+  return rows[0] ?? null;
+}
+
+/** Logs for a run, oldest first. */
+export async function getRunLogs(db: DB, runId: string): Promise<RunLogRow[]> {
+  return db.select().from(runLogs).where(eq(runLogs.runId, runId)).orderBy(runLogs.ts);
 }

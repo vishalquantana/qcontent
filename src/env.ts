@@ -12,6 +12,7 @@ export const env = {
   anthropicKey: opt("ANTHROPIC_API_KEY"),
   dataforseoLogin: opt("DATAFORSEO_LOGIN"),
   dataforseoPassword: opt("DATAFORSEO_PASSWORD"),
+  apiToken: opt("QCONTENT_API_TOKEN"),
 };
 
 export function requireMasterKey(): Buffer {

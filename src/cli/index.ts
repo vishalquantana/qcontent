@@ -7,6 +7,8 @@ import { saveCredential } from "../service/credentials.js";
 import { addTopic } from "../service/topics.js";
 import { runJob, knownJobTypes } from "../jobs/index.js";
 import { startWorker } from "../scheduler/worker.js";
+import { startServer } from "../api/server.js";
+import { env } from "../env.js";
 
 // Side-effect imports register providers/adapters.
 import "../providers/llm/claude.js";
@@ -107,5 +109,19 @@ program
 program.command("worker").description("start the scheduler worker").action(async () => {
   await startWorker();
 });
+
+program
+  .command("serve")
+  .description("start the HTTP API + dashboard")
+  .option("--port <n>", "port", "8787")
+  .option("--host <host>", "host", "127.0.0.1")
+  .action(async (o) => {
+    if (!env.apiToken) {
+      console.error("QCONTENT_API_TOKEN is required to serve the API");
+      process.exit(1);
+    }
+    const { port } = await startServer({ db, token: env.apiToken, port: Number(o.port), host: o.host });
+    console.log(`qcontent API + dashboard on http://${o.host}:${port}`);
+  });
 
 program.parseAsync();

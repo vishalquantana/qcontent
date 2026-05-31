@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>qcontent control</title>
+  <style>
+    :root { --bg:#0a0a0a; --card:#18181b; --line:#27272a; --text:#fafafa; --muted:#a1a1aa; --accent:#dc2626; }
+    * { box-sizing:border-box; } body { margin:0; background:var(--bg); color:var(--text); font:15px/1.5 system-ui, sans-serif; }
+    header { padding:16px 24px; border-bottom:1px solid var(--line); display:flex; gap:12px; align-items:center; }
+    header h1 { font-size:18px; margin:0; } header input { margin-left:auto; background:var(--card); border:1px solid var(--line); color:var(--text); padding:8px 10px; border-radius:8px; width:280px; }
+    main { padding:24px; display:grid; gap:24px; grid-template-columns:1fr 1fr; max-width:1200px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; }
+    .card h2 { font-size:14px; margin:0 0 12px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+    table { width:100%; border-collapse:collapse; font-size:13px; } td, th { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); }
+    button { background:var(--accent); color:#fff; border:0; padding:8px 12px; border-radius:8px; cursor:pointer; font-size:13px; }
+    select, .card input { background:var(--bg); border:1px solid var(--line); color:var(--text); padding:7px 9px; border-radius:8px; }
+    .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px; }
+    .full { grid-column:1 / -1; } pre { white-space:pre-wrap; word-break:break-word; font-size:12px; color:var(--muted); }
+    .ok { color:#4ade80; } .failed { color:var(--accent); } .running { color:#d4a853; } .muted { color:var(--muted); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>qcontent</h1>
+    <input id="token" type="password" placeholder="API token (Bearer)" />
+  </header>
+  <main>
+    <section class="card"><h2>Sites</h2><table id="sites"><tbody></tbody></table></section>
+    <section class="card"><h2>Brands</h2><table id="brands"><tbody></tbody></table></section>
+    <section class="card full"><h2>Run a job</h2>
+      <div class="row">
+        <select id="run-site"></select>
+        <select id="run-job">
+          <option>generate</option><option>reindex</option><option>maintain-links</option>
+          <option>refresh</option><option>distribute-social</option>
+        </select>
+        <button id="run-btn">Run now</button>
+        <span id="run-out" class="muted"></span>
+      </div>
+    </section>
+    <section class="card full"><h2>Queue a topic</h2>
+      <div class="row">
+        <select id="topic-site"></select>
+        <input id="topic-title" placeholder="Topic / question" style="flex:1; min-width:240px;" />
+        <button id="topic-btn">Queue (approved)</button>
+        <span id="topic-out" class="muted"></span>
+      </div>
+    </section>
+    <section class="card full"><h2>Recent runs</h2><table id="runs"><tbody></tbody></table></section>
+    <section class="card full"><h2>Run detail</h2><pre id="run-detail">Click a run above.</pre></section>
+  </main>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const tokenBox = $("token");
+    tokenBox.value = localStorage.getItem("qc_token") || "";
+    tokenBox.addEventListener("change", () => { localStorage.setItem("qc_token", tokenBox.value); refresh(); });
+    const api = async (method, path, body) => {
+      const res = await fetch(path, {
+        method,
+        headers: { Authorization: "Bearer " + tokenBox.value, "Content-Type": "application/json" },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || res.status);
+      return res.json();
+    };
+    function siteOptions(sel, sites) {
+      sel.innerHTML = sites.map((s) => `<option value="${s.id}">${s.slug}</option>`).join("");
+    }
+    async function refresh() {
+      try {
+        const [sites, brands, runs] = await Promise.all([
+          api("GET", "/api/sites"), api("GET", "/api/brands"), api("GET", "/api/runs?limit=25"),
+        ]);
+        $("sites").querySelector("tbody").innerHTML = sites.map((s) => `<tr><td>${s.slug}</td><td>${s.adapterType}</td><td>${s.baseUrl || ""}</td></tr>`).join("") || "<tr><td>none</td></tr>";
+        $("brands").querySelector("tbody").innerHTML = brands.map((b) => `<tr><td>${b.slug}</td><td>${b.name}</td></tr>`).join("") || "<tr><td>none</td></tr>";
+        siteOptions($("run-site"), sites); siteOptions($("topic-site"), sites);
+        $("runs").querySelector("tbody").innerHTML = runs.map((r) => `<tr data-id="${r.id}" style="cursor:pointer"><td>${r.jobType}</td><td class="${r.status}">${r.status}</td><td>${new Date(r.startedAt).toLocaleString()}</td></tr>`).join("") || "<tr><td>none</td></tr>";
+        $("runs").querySelectorAll("tr[data-id]").forEach((tr) => tr.addEventListener("click", () => showRun(tr.dataset.id)));
+      } catch (e) { /* token likely missing/invalid */ }
+    }
+    async function showRun(id) {
+      const d = await api("GET", "/api/runs/" + id);
+      $("run-detail").textContent = JSON.stringify(d, null, 2);
+    }
+    $("run-btn").addEventListener("click", async () => {
+      $("run-out").textContent = "running...";
+      try { const r = await api("POST", `/api/sites/${$("run-site").value}/run`, { job: $("run-job").value }); $("run-out").textContent = JSON.stringify(r); refresh(); }
+      catch (e) { $("run-out").textContent = "error: " + e.message; }
+    });
+    $("topic-btn").addEventListener("click", async () => {
+      $("topic-out").textContent = "...";
+      try { await api("POST", `/api/sites/${$("topic-site").value}/topics`, { title: $("topic-title").value, approve: true, priority: 5 }); $("topic-out").textContent = "queued"; $("topic-title").value = ""; }
+      catch (e) { $("topic-out").textContent = "error: " + e.message; }
+    });
+    refresh();
+  </script>
+</body>
+</html>
