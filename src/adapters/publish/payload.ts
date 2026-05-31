@@ -51,7 +51,7 @@ export class PayloadAdapter implements PublishAdapter {
     if (!res.ok) throw new Error(`payload create failed: ${res.status} ${await res.text().catch(() => "")}`);
     const body = (await res.json()) as { doc?: { id: string | number } };
     const id = body.doc?.id;
-    const url = site.baseUrl ? `${site.baseUrl.replace(/\/$/, "")}/${collection}/${article.slug}` : article.slug;
+    const url = base ? `${base}/${collection}/${article.slug}` : article.slug;
     return { url, ref: { id } };
   }
 }

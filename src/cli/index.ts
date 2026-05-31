@@ -12,6 +12,9 @@ import { startWorker } from "../scheduler/worker.js";
 import "../providers/llm/claude.js";
 import "../providers/topics/dataforseo.js";
 import "../adapters/publish/webhook.js";
+import "../adapters/publish/github-mdx.js";
+import "../adapters/publish/wordpress.js";
+import "../adapters/publish/payload.js";
 
 const program = new Command();
 program.name("qcontent").description("Multi-site content & GEO engine");

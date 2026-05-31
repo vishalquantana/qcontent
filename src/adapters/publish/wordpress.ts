@@ -67,7 +67,7 @@ export class WordPressAdapter implements PublishAdapter {
     name: string,
     headers: Record<string, string>,
   ): Promise<number> {
-    const searchRes = await fetch(`${api}/${taxonomy}?search=${encodeURIComponent(name)}`, { headers });
+    const searchRes = await fetch(`${api}/${taxonomy}?search=${encodeURIComponent(name)}&per_page=100`, { headers });
     if (!searchRes.ok) throw new Error(`wordpress ${taxonomy} search failed: ${searchRes.status}`);
     const found = (await searchRes.json()) as WpTerm[];
     const match = found.find((t) => t.name.toLowerCase() === name.toLowerCase());

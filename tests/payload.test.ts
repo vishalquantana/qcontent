@@ -82,6 +82,21 @@ describe("PayloadAdapter", () => {
     expect(sent.featured).toBe(false);
   });
 
+  it("builds the public url from adapterConfig.baseUrl when site.baseUrl is null", async () => {
+    const calls: Array<{ url: string; init?: RequestInit }> = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push({ url, init });
+      return { ok: true, status: 201, json: async () => ({ doc: { id: "d4" } }) } as Response;
+    }) as never);
+    // site.baseUrl is null (nullable column); only adapterConfig.baseUrl is set.
+    const site = { id: "s", baseUrl: null, adapterConfig: { baseUrl: "https://cms.example.com", collection: "posts" } } as never;
+    const adapter = new PayloadAdapter();
+    const result = await adapter.publish(article, site, { apiKey: "k" });
+    expect(calls[0]!.url).toBe("https://cms.example.com/api/posts");
+    // url must be a full URL derived from the resolved base, not a bare slug
+    expect(result.url).toBe("https://cms.example.com/posts/cut-blinkit-ad-waste-2026");
+  });
+
   it("throws when apiKey is missing", async () => {
     const site = { id: "s", baseUrl: "https://cms.example.com", adapterConfig: {} } as never;
     const adapter = new PayloadAdapter();
