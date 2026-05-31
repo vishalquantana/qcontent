@@ -1,6 +1,7 @@
 import "../providers/llm/claude.js";
 import "../providers/topics/dataforseo.js";
 import "../adapters/publish/webhook.js";
+import "../adapters/publish/github-mdx.js";
 
 import { createHash } from "node:crypto";
 import type { DB } from "../db/client.js";
@@ -16,6 +17,8 @@ import { getPublishAdapter } from "../adapters/publish/index.js";
 import { buildGenerationPrompt } from "./prompt-builder.js";
 import { ArticleSchema, type Article } from "../domain/article.js";
 import { validateArticle } from "../domain/validators.js";
+import { runIndexing, type ServiceAccount } from "../adapters/index/google-indexing.js";
+import { notifyPublished, notifyFailure, type TelegramCreds } from "../adapters/notify/telegram.js";
 
 export interface GenerateArgs {
   siteId: string;
@@ -87,12 +90,37 @@ export async function runGenerate(db: DB, args: GenerateArgs): Promise<GenerateR
       await markTopicUsed(db, queuedTopicId);
     }
 
+    // Best-effort: Google Indexing (only if a service-account credential exists for the site).
+    try {
+      const sa = await getCredential<ServiceAccount>(db, args.siteId, "google-indexing");
+      const sitemapUrl = (site.indexing as Record<string, unknown> | null)?.sitemapUrl as string | undefined;
+      const idx = await runIndexing(sa, published.url, sitemapUrl);
+      await run.log("info", "indexing", idx as unknown as Record<string, unknown>);
+    } catch (e) {
+      await run.log("warn", "indexing error", { message: e instanceof Error ? e.message : String(e) });
+    }
+
+    // Best-effort: Telegram publish notification.
+    try {
+      const tg = await getCredential<TelegramCreds>(db, args.siteId, "telegram");
+      await notifyPublished(tg, { title: article.title, url: published.url, type: contentType });
+    } catch (e) {
+      await run.log("warn", "notify error", { message: e instanceof Error ? e.message : String(e) });
+    }
+
     await run.finishOk({ slug: article.slug, url: published.url });
     return { status: "ok", url: published.url, slug: article.slug };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     await run.log("error", "generate failed", { message });
     await run.finishFailed(message);
+    // Best-effort failure notification — never let it mask the original error.
+    try {
+      const tg = await getCredential<TelegramCreds>(db, args.siteId, "telegram");
+      await notifyFailure(tg, { site: args.siteId, jobType: "generate", error: message });
+    } catch {
+      // swallow
+    }
     return { status: "failed", error: message };
   }
 }
