@@ -54,6 +54,33 @@ export class PayloadAdapter implements PublishAdapter {
     const url = base ? `${base}/${collection}/${article.slug}` : article.slug;
     return { url, ref: { id } };
   }
+
+  async update(article: Article, ref: unknown, site: Site, creds: Record<string, unknown>): Promise<PublishResult> {
+    const apiKey = (creds as PayloadCreds).apiKey;
+    if (!apiKey) throw new Error("payload adapter: missing 'apiKey' credential");
+    const id = (ref as { id?: string | number } | null)?.id;
+    if (id === undefined || id === null) throw new Error("payload adapter: update requires ref.id");
+    const cfg = (site.adapterConfig ?? {}) as PayloadConfig;
+    const base = (cfg.baseUrl ?? site.baseUrl ?? "").replace(/\/$/, "");
+    if (!base) throw new Error("payload adapter: missing base URL");
+    const collection = cfg.collection ?? "posts";
+    const contentField = cfg.contentField ?? "content";
+    const authScheme = cfg.authScheme ?? "users API-Key";
+
+    const doc: Record<string, unknown> = {
+      title: article.title,
+      excerpt: article.excerpt,
+      [contentField]: inlineVisuals(article),
+    };
+    const res = await fetch(`${base}/api/${collection}/${id}`, {
+      method: "PATCH",
+      headers: { Authorization: `${authScheme} ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify(doc),
+    });
+    if (!res.ok) throw new Error(`payload update failed: ${res.status} ${await res.text().catch(() => "")}`);
+    const url = base ? `${base}/${collection}/${article.slug}` : article.slug;
+    return { url, ref: { id } };
+  }
 }
 
 registerPublishAdapter("payload", () => new PayloadAdapter());
