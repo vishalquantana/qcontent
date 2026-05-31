@@ -2,6 +2,8 @@ import "../providers/llm/claude.js";
 import "../providers/topics/dataforseo.js";
 import "../adapters/publish/webhook.js";
 import "../adapters/publish/github-mdx.js";
+import "../adapters/publish/wordpress.js";
+import "../adapters/publish/payload.js";
 
 import { createHash } from "node:crypto";
 import type { DB } from "../db/client.js";
