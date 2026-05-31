@@ -86,6 +86,7 @@ export async function runGenerate(db: DB, args: GenerateArgs): Promise<GenerateR
     await recordPublished(db, {
       siteId: args.siteId, slug: article.slug, url: published.url, contentType,
       title: article.title, adapterRef: published.ref as Record<string, unknown>, contentHash,
+      article,
     });
 
     if (queuedTopicId) {
