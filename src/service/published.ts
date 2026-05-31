@@ -26,6 +26,7 @@ export async function recordPublished(
   args: {
     siteId: string; slug: string; url?: string; contentType?: string; title?: string;
     adapterRef?: Record<string, unknown>; contentHash?: string; article?: Article;
+    publishedAt?: Date;
   },
 ): Promise<void> {
   const { article, ...rest } = args;

@@ -48,7 +48,7 @@ beforeAll(async () => {
   const site = await createSite(db, { brandId: brand.id, name: "S", slug: "s-refresh", adapterType: "webhook", baseUrl: "https://x.test" });
   siteId = site.id;
   await saveCredential(db, { siteId, integration: "webhook", secret: { url: "https://hook/in" } });
-  await recordPublished(db, { siteId, slug: "old", url: "https://x.test/guides/old", contentType: "guides", title: "Old", article: art("old", "Stale body."), adapterRef: { id: "w1" } });
+  await recordPublished(db, { siteId, slug: "old", url: "https://x.test/guides/old", contentType: "guides", title: "Old", article: art("old", "Stale body."), adapterRef: { id: "w1" }, publishedAt: new Date("2026-01-01T00:00:00Z") });
 
   registerLLMProvider("fakeRefresh", () => ({
     name: "fakeRefresh",
@@ -63,7 +63,7 @@ describe("runRefresh", () => {
     vi.stubGlobal("fetch", vi.fn(async (_url: string, init?: RequestInit) => {
       const b = init?.body ? JSON.parse(init.body as string) : {};
       if (b.action === "update") updates.push(b.article);
-      return { ok: true, status: 200, json: async () => ({ id: "wh" }) } as Response;
+      return { ok: true, status: 200, json: async () => ({ id: "wh" }), text: async () => "ok" } as Response;
     }) as never);
 
     const result = await runRefresh(db, { siteId, llmProvider: "fakeRefresh", maxAgeDays: 30, limit: 5, now: "2026-06-01T00:00:00Z" });
